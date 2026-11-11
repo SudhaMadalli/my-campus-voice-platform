@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GCE CLK Campus Voice</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<style>
+  /* Layout: centered column with a header bar, hero, filter pills and a grid of announcement cards. */
+  :root {
+    --bg: #e6f4f1;
+    --surface: #ffffff;
+    --fg: #1b1f3b;
+    --muted: #5b6079;
+    --faint: #8a8fa8;
+    --line: #c5ddd8;
+    --accent: #0f766e;
+    --accent-hover: #115e59;
+    --on-accent: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1b1a;
+      --surface: #12292a;
+      --fg: #eceefa;
+      --muted: #a9aecb;
+      --faint: #7d83a3;
+      --line: #234443;
+      --accent: #5eead4;
+      --accent-hover: #99f6e4;
+      --on-accent: #0a1b1a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1b1a;
+    --surface: #12292a;
+    --fg: #eceefa;
+    --muted: #a9aecb;
+    --faint: #7d83a3;
+    --line: #234443;
+    --accent: #5eead4;
+    --accent-hover: #99f6e4;
+    --on-accent: #0a1b1a;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .chip {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--fg);
+    border-radius: 9999px;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+  .field {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--fg);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9375rem;
+  }
+  .label { display: block; margin-bottom: 0.25rem; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+</style>
+
+</head>
+<body>
+<!-- Header -->
+<header class="border-b border-[color:var(--line)]">
+  <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 py-4">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-extrabold tracking-tight text-[color:var(--accent)]">GCE CLK Campus Voice</h1>
+      <p class="text-sm text-[color:var(--muted)]">Your Campus, Your Voice – Connecting Every Voice at GCE CLK.</p>
+    </div>
+    <button id="new-btn" type="button" class="rounded-lg bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] shadow-sm transition hover:bg-[color:var(--accent-hover)]">
+      + New Announcement
+    </button>
+  </div>
+</header>
+
+<main class="mx-auto max-w-5xl">
+
+  <!-- Hero -->
+  <section class="py-12 text-center">
+    <h2 class="text-balance text-4xl font-bold tracking-tight text-[color:var(--fg)] sm:text-5xl">
+      What's happening on campus?
+    </h2>
+    <p class="mt-4 text-lg text-[color:var(--muted)]">
+      Stay updated with the latest announcements.
+    </p>
+  </section>
+
+  <!-- Category buttons -->
+  <section id="filters" class="flex flex-wrap justify-center gap-3 pb-6" aria-label="Filter announcements by category">
+    <button type="button" class="chip" data-filter="All" aria-pressed="true">All</button>
+    <button type="button" class="chip" data-filter="Academic" aria-pressed="false">Academic</button>
+    <button type="button" class="chip" data-filter="Events" aria-pressed="false">Events</button>
+    <button type="button" class="chip" data-filter="Placement" aria-pressed="false">Placement</button>
+  </section>
+
+  <p id="count" class="pb-4 text-center text-sm text-[color:var(--faint)]" aria-live="polite"></p>
+
+  <!-- Announcement cards -->
+  <section class="pb-16">
+    <div id="list" class="grid gap-4 sm:grid-cols-2"></div>
+    <p id="empty" hidden class="rounded-xl border border-dashed border-[color:var(--line)] p-8 text-center text-[color:var(--muted)]">
+      No announcements in this category yet. Use "+ New Announcement" to post the first one.
+    </p>
+  </section>
+
+</main>
+
+<!-- New announcement form -->
+<div id="modal" hidden class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  <form id="form" role="dialog" aria-modal="true" aria-labelledby="form-title" class="max-h-full w-full max-w-md overflow-y-auto rounded-xl border border-[color:var(--line)] bg-[color:var(--surface)] p-6 shadow-xl">
+    <h3 id="form-title" class="text-xl font-semibold text-[color:var(--fg)]">New Announcement</h3>
+    <div class="mt-4 grid gap-4">
+      <div>
+        <label class="label" for="f-category">Category</label>
+        <select id="f-category" class="field" required>
+          <option>Academic</option>
+          <option>Events</option>
+          <option>Placement</option>
+        </select>
+      </div>
+      <div>
+        <label class="label" for="f-title">Title</label>
+        <input id="f-title" class="field" type="text" maxlength="80" required placeholder="Internal Assessment Schedule" />
+      </div>
+      <div>
+        <label class="label" for="f-desc">Description</label>
+        <textarea id="f-desc" class="field" rows="3" maxlength="240" required placeholder="Internal assessments begin next Monday."></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="min-w-0">
+          <label class="label" for="f-date">Date</label>
+          <input id="f-date" class="field" type="date" required />
+        </div>
+        <div class="min-w-0">
+          <label class="label" for="f-time">Time</label>
+          <input id="f-time" class="field" type="time" required />
+        </div>
+      </div>
+    </div>
+    <div class="mt-6 flex justify-end gap-3">
+      <button id="cancel-btn" type="button" class="rounded-lg border border-[color:var(--line)] px-4 py-2 text-sm font-semibold text-[color:var(--fg)] transition hover:border-[color:var(--accent)]">Cancel</button>
+      <button type="submit" class="rounded-lg bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-[color:var(--on-accent)] transition hover:bg-[color:var(--accent-hover)]">Post</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  var STORE_KEY = "campus-voice-announcements";
+  var seed = [
+    { id: 1, category: "Academic", title: "Internal Assessment Schedule",
+      description: "Internal assessments begin next Monday. Check your department timetable.",
+      date: "2026-10-24", time: "10:30" },
+    { id: 2, category: "Events", title: "Tech Fest Registrations Open",
+      description: "Register your team at the student activity centre before 12 November.",
+      date: "2026-11-03", time: "14:00" },
+    { id: 3, category: "Placement", title: "Pre-Placement Talk for Final Years",
+      description: "Attend in the main auditorium and carry your college ID card.",
+      date: "2026-11-04", time: "09:00" }
+  ];
+
+  var items = load();
+  var filter = "All";
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) { var parsed = JSON.parse(raw); if (Array.isArray(parsed) && parsed.length) return parsed; }
+    } catch (e) {}
+    return seed.slice();
+  }
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(items)); } catch (e) {}
+  }
+
+  function fmtDate(iso) {
+    var d = new Date(iso + "T00:00:00");
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  }
+  function fmtTime(hhmm) {
+    var p = hhmm.split(":");
+    var h = parseInt(p[0], 10);
+    if (isNaN(h)) return hhmm;
+    return (h % 12 || 12) + ":" + p[1] + " " + (h < 12 ? "AM" : "PM");
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function render() {
+    var list = document.getElementById("list");
+    list.textContent = "";
+    var shown = items.filter(function (a) { return filter === "All" || a.category === filter; });
+    shown.forEach(function (a) {
+      var card = el("article", "min-w-0 rounded-xl border border-[color:var(--line)] bg-[color:var(--surface)] p-6 shadow-sm transition hover:shadow-md");
+      card.appendChild(el("span", "text-xs font-bold uppercase tracking-wider text-[color:var(--accent)]", a.category));
+      card.appendChild(el("h3", "mt-2 break-words text-xl font-semibold text-[color:var(--fg)]", a.title));
+      card.appendChild(el("p", "mt-2 break-words text-[color:var(--muted)]", a.description));
+      card.appendChild(el("p", "mt-4 text-sm text-[color:var(--faint)]", fmtDate(a.date) + " • " + fmtTime(a.time)));
+      list.appendChild(card);
+    });
+    document.getElementById("empty").hidden = shown.length > 0;
+    document.title = (filter === "All" ? "" : filter + " · ") + "GCE CLK Campus Voice";
+    document.getElementById("count").textContent =
+      shown.length + (shown.length === 1 ? " announcement" : " announcements") +
+      (filter === "All" ? "" : " in " + filter);
+    document.querySelectorAll("#filters .chip").forEach(function (b) {
+      b.setAttribute("aria-pressed", b.dataset.filter === filter ? "true" : "false");
+    });
+  }
+
+  document.getElementById("filters").addEventListener("click", function (e) {
+    var b = e.target.closest(".chip");
+    if (!b) return;
+    filter = b.dataset.filter;
+    render();
+  });
+
+  var modal = document.getElementById("modal");
+  var form = document.getElementById("form");
+  var newBtn = document.getElementById("new-btn");
+
+  function today() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+  function openForm() {
+    form.reset();
+    document.getElementById("f-date").value = today();
+    document.getElementById("f-time").value = "10:30";
+    if (filter !== "All") document.getElementById("f-category").value = filter;
+    modal.hidden = false;
+    document.getElementById("f-title").focus();
+  }
+  function closeForm() {
+    modal.hidden = true;
+    newBtn.focus();
+  }
+
+  newBtn.addEventListener("click", openForm);
+  document.getElementById("cancel-btn").addEventListener("click", closeForm);
+  modal.addEventListener("click", function (e) { if (e.target === modal) closeForm(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !modal.hidden) closeForm(); });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var cat = document.getElementById("f-category").value;
+    var next = {
+      id: Date.now(),
+      category: cat,
+      title: document.getElementById("f-title").value.trim(),
+      description: document.getElementById("f-desc").value.trim(),
+      date: document.getElementById("f-date").value,
+      time: document.getElementById("f-time").value
+    };
+    if (!next.title || !next.description) return;
+    items.unshift(next);
+    save();
+    if (filter !== "All" && filter !== cat) filter = "All";
+    render();
+    closeForm();
+  });
+
+  render();
+</script>
+</body>
+</html>
